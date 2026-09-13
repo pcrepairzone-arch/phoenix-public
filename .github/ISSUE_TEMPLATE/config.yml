@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: RISC OS Open forums
+    url: https://www.riscosopen.org/forum/
+    about: General RISC OS questions — far more people and far more history than we have.
+  - name: comp.sys.acorn.programmer
+    url: https://groups.google.com/g/comp.sys.acorn.programmer
+    about: The long-running RISC OS programming newsgroup.

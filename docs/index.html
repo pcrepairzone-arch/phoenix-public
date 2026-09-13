@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phoenix RISC OS — public view</title>
+<style>
+:root{
+  color-scheme: light;
+  --ink:#1a1a1a; --soft:#4a4a4a; --faint:#767676; --rule:#e0ddd6;
+  --bg:#fbfaf7; --card:#fff; --accent:#8a3324; --accent-bg:#fdf3f0;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg)}
+body{font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,sans-serif;color:var(--ink)}
+.w{max-width:820px;margin:0 auto;padding:0 22px 80px}
+a{color:var(--accent)}
+header{padding:56px 0 26px;border-bottom:3px solid var(--ink)}
+.kicker{font:600 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+h1{font-size:2.4rem;line-height:1.1;margin:0 0 16px;letter-spacing:-.02em}
+.stand{font-size:1.12rem;color:var(--soft);margin:0;max-width:62ch}
+h2{font-size:1.35rem;margin:44px 0 10px;padding-top:22px;border-top:1px solid var(--rule)}
+p{margin:0 0 14px}
+code{font:13.5px/1.4 var(--mono);background:#f4f2ed;padding:1px 5px;border-radius:3px}
+.tile{display:block;background:var(--card);border:1px solid var(--rule);border-radius:7px;
+  padding:22px 24px;margin:16px 0;text-decoration:none;color:inherit;transition:border-color .12s}
+.tile:hover{border-color:var(--accent)}
+.tile .n{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);
+  display:block;margin-bottom:9px}
+.tile h3{margin:0 0 8px;font-size:1.22rem;color:var(--ink)}
+.tile p{margin:0;color:var(--soft);font-size:15px}
+.note{background:var(--accent-bg);border-left:4px solid var(--accent);padding:18px 20px;
+  margin:22px 0;border-radius:0 5px 5px 0}
+.note p:last-child{margin-bottom:0}
+footer{margin-top:56px;padding-top:22px;border-top:3px solid var(--ink);font-size:14px;color:var(--soft)}
+@media(max-width:600px){h1{font-size:1.85rem}}
+</style>
+</head>
+<body>
+<div class="w">
+
+<header>
+  <div class="kicker">Phoenix RISC OS</div>
+  <h1>A 64-bit RISC OS kernel, and what we learned building it</h1>
+  <p class="stand">Phoenix is a bare-metal AArch64 RISC-OS-compatible kernel for the Raspberry Pi 4, CM4, Pi 5 and CM5. The source is not public yet. This is everything else: the hazards we hit porting to 64-bit, and a map of how the kernel is put together.</p>
+</header>
+
+<h2>Start here</h2>
+
+<a class="tile" href="bulletins/01-porting-to-64-bit-risc-os.html">
+  <span class="n">Bulletin No. 1 · 13 September 2026</span>
+  <h3>Porting to 64-bit RISC OS: what actually bites</h3>
+  <p>Sentinels that sign-extend, flags that never reach a C caller, struct padding that moves every field, alignment checking that isn't on, relocations that come back eight bytes high. Plus the debugging habits that surfaced them. For anyone using the riscos64 toolchain, not only for Phoenix.</p>
+</a>
+
+<a class="tile" href="architecture/">
+  <span class="n">Interactive</span>
+  <h3>Architecture map</h3>
+  <p>Browse Phoenix by layer — boot, kernel core, device tree, SWI and module system, filing systems, drivers, network, Wimp. Every file and function with a plain-English summary and its relationships. Generated from the source, so it is honest about what actually exists.</p>
+</a>
+
+<h2>The one-paragraph version</h2>
+
+<div class="note">
+<p>The 64-bit bugs that hurt are not the ones that fail to compile. They are the ones where a 32-bit convention <em>changes meaning</em> rather than changing syntax — so the code still builds, still links, still loads, and then quietly reads a register nobody wrote or a field four bytes past where it lives. <strong>A 32-bit assumption on a 64-bit build goes silent; it does not go loud.</strong></p>
+</div>
+
+<h2>Corrections wanted</h2>
+
+<p>Bulletin No. 1 contains two entries that contradict things this project itself wrote earlier, and a third claim was caught and fixed on the day it was published. That is the process working, not failing.</p>
+
+<p>If something here is wrong — or right but out of date — please <a href="https://github.com/pcrepairzone-arch/phoenix-public/issues">open an issue</a>. A correction is worth more to us than a compliment, and an issue beats an email because everyone else sees it too.</p>
+
+<h2>Open questions</h2>
+
+<p>Some problems are bigger than one project. Issues tagged <code>open-question</code> are things we have not solved and do not think we should solve privately, because whoever answers first effectively sets a convention for everybody.</p>
+
+<p>The current one: <strong>how should a Wimp library represent a fixed 32-bit OS block in C at LP64?</strong> It blocks work in at least three codebases, and it has been found independently from both the 32-bit and 64-bit sides. If you have already solved it, that is the most useful possible reply.</p>
+
+<footer>
+<p>Phoenix RISC OS · Prose <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, code MIT · <a href="https://github.com/pcrepairzone-arch/phoenix-public">Repository</a></p>
+<p style="color:var(--faint);font-size:13.5px">The RISC OS 64-bit toolchain, and many of the modules Phoenix loads, are Charles Ferguson's work. Andrew Youll's <a href="https://github.com/adyoull/desklib32">desklib32</a> notes prompted the alignment investigation in Bulletin No. 1.</p>
+</footer>
+
+</div>
+</body>
+</html>

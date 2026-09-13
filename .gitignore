@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+._*
+
+# Editors
+*.swp
+*~
+.vscode/
+.idea/
+
+# Nothing generated is built here — the site is plain static files under docs/.
+# The architecture map is COPIED IN from the private clone (see docs/graph/README.md),
+# so knowledge-graph.json and meta.json are deliberately TRACKED. Do not ignore them.
+
+# Do not let the private tree's working files wander in
+.understand-anything/intermediate/
+.understand-anything/tmp/
+fingerprints.json
+*.json.bak
+
+# Never
+Emails/
+*.img
+*.o
+*.elf

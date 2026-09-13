@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phoenix Developer Bulletin No. 1 — Porting to 64-bit RISC OS</title>
+<style>
+  :root {
+    color-scheme: light;
+    --ink:      #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --ink-faint:#767676;
+    --rule:     #e0ddd6;
+    --bg:       #fbfaf7;
+    --card:     #ffffff;
+    --accent:   #8a3324;
+    --accent-bg:#fdf3f0;
+    --warn-bg:  #fff9e8;
+    --warn-edge:#d9a520;
+    --good-bg:  #f0f6f0;
+    --good-edge:#3f7a3f;
+    --code-bg:  #f4f2ed;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  .bul {
+    max-width: 860px; margin: 0 auto; padding: 0 22px 80px;
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
+    color: var(--ink); background: var(--bg);
+  }
+  .bul header.mast { padding: 48px 0 28px; border-bottom: 3px solid var(--ink); margin-bottom: 8px; }
+  .bul .kicker {
+    font: 600 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  .bul h1 { font-size: 2.35rem; line-height: 1.12; margin: 0 0 14px; letter-spacing: -.02em; }
+  .bul .standfirst { font-size: 1.12rem; color: var(--ink-soft); margin: 0; max-width: 62ch; }
+  .bul .meta {
+    font: 13px/1.5 var(--mono); color: var(--ink-faint);
+    padding: 14px 0 0; margin-top: 18px; border-top: 1px solid var(--rule);
+  }
+  .bul h2 {
+    font-size: 1.5rem; margin: 56px 0 6px; padding-top: 26px;
+    border-top: 1px solid var(--rule); letter-spacing: -.01em;
+  }
+  .bul h2 .num {
+    display: block; font: 600 11px/1 var(--mono); letter-spacing: .14em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+  }
+  .bul h3 { font-size: 1.1rem; margin: 34px 0 8px; }
+  .bul h4 { font-size: .95rem; margin: 22px 0 6px; color: var(--ink-soft); }
+  .bul p { margin: 0 0 14px; }
+  .bul a { color: var(--accent); }
+  .bul code {
+    font: 13.5px/1.4 var(--mono); background: var(--code-bg);
+    padding: 1px 5px; border-radius: 3px; word-break: break-word;
+  }
+  .bul pre {
+    background: var(--code-bg); border-left: 3px solid var(--rule);
+    padding: 13px 16px; overflow-x: auto; margin: 14px 0; border-radius: 0 4px 4px 0;
+  }
+  .bul pre code { background: none; padding: 0; font-size: 13px; line-height: 1.55; }
+  .bul .lede {
+    background: var(--accent-bg); border-left: 4px solid var(--accent);
+    padding: 18px 20px; margin: 22px 0; border-radius: 0 5px 5px 0;
+  }
+  .bul .lede p:last-child, .bul .box p:last-child { margin-bottom: 0; }
+  .bul .box {
+    background: var(--card); border: 1px solid var(--rule);
+    padding: 18px 20px; margin: 20px 0; border-radius: 5px;
+  }
+  .bul .box.warn { background: var(--warn-bg); border-color: var(--warn-edge); }
+  .bul .box.good { background: var(--good-bg); border-color: var(--good-edge); }
+  .bul .box .lbl {
+    font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-faint); display: block; margin-bottom: 9px;
+  }
+  .bul table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14.5px; }
+  .bul th, .bul td { text-align: left; padding: 9px 11px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  .bul th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); border-bottom: 2px solid var(--rule); }
+  .bul td code { font-size: 12.5px; }
+  .bul ul, .bul ol { margin: 0 0 14px; padding-left: 22px; }
+  .bul li { margin-bottom: 7px; }
+  .bul .hazard {
+    border: 1px solid var(--rule); border-radius: 6px; background: var(--card);
+    padding: 20px 22px; margin: 22px 0;
+  }
+  .bul .hazard > h3 { margin-top: 0; }
+  .bul .tag {
+    display: inline-block; font: 600 10.5px/1 var(--mono); letter-spacing: .1em;
+    text-transform: uppercase; padding: 4px 8px; border-radius: 3px;
+    background: var(--accent); color: #fff; vertical-align: 3px; margin-left: 8px;
+  }
+  .bul .tag.open { background: var(--warn-edge); color: #3a2c00; }
+  .bul .tag.ours { background: var(--ink-faint); }
+  .bul .sym {
+    font: 13px/1.5 var(--mono); color: var(--ink-soft);
+    border-left: 3px solid var(--warn-edge); padding: 3px 0 3px 12px; margin: 0 0 14px;
+  }
+  .bul .toc { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 20px 24px; margin: 28px 0; }
+  .bul .toc ol { margin: 0; padding-left: 20px; }
+  .bul .toc > strong { display: block; margin-bottom: 10px; font-size: .95rem; }
+  .bul footer.end {
+    margin-top: 60px; padding-top: 22px; border-top: 3px solid var(--ink);
+    font-size: 14px; color: var(--ink-soft);
+  }
+  .bul .rule-line { border: 0; border-top: 1px solid var(--rule); margin: 34px 0; }
+  @media (max-width: 600px) {
+    .bul h1 { font-size: 1.8rem; }
+    .bul { padding: 0 16px 60px; }
+    .bul table { font-size: 13px; }
+    .bul th, .bul td { padding: 7px 6px; }
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+</style>
+</head>
+<body>
+
+<div class="bul">
+
+<header class="mast">
+  <div class="kicker">Phoenix RISC OS · Developer Bulletin No. 1</div>
+  <h1>Porting to 64-bit RISC OS: what actually bites</h1>
+  <p class="standfirst">Every hazard below cost us real days. They are collected here so they cost you an afternoon's reading instead. Part one applies to anyone building 64-bit RISC OS code with the riscos64 toolchain; part two is Phoenix-specific; part three is how to work so these things surface early.</p>
+  <p class="meta">Written 13 September 2026 · Phoenix RISC OS project · MIT<br>
+  Everything here is measured on real hardware (Pi 4, CM4, Pi 5, CM5) unless explicitly marked as a hypothesis.</p>
+</header>
+
+<div class="lede">
+  <p><strong>If you read one paragraph, read this one.</strong></p>
+  <p>The 64-bit bugs that hurt are not the ones that fail to compile. They are the ones where a 32-bit convention <em>changes meaning</em> rather than changing syntax — so the code still builds, still links, still loads, and then quietly reads a register nobody wrote or a field four bytes past where it lives. <strong>A 32-bit assumption on a 64-bit build goes silent; it does not go loud.</strong> Nearly every entry in Part 1 is a variation on that one sentence.</p>
+</div>
+
+<div class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#part1">The 64-bit hazards</a> — sentinels, flags, struct layout, alignment, relocations, toolchain gaps</li>
+    <li><a href="#part2">Working on Phoenix</a> — what it is, how to build it, what will trip you first</li>
+    <li><a href="#part3">Method</a> — the working rules that actually found the bugs above</li>
+    <li><a href="#open">The open question</a> — 32-bit Wimp blocks at LP64, and we'd like your view</li>
+  </ol>
+</div>
+
+<h2 id="part1"><span class="num">Part one</span>The 64-bit hazards</h2>
+
+<p>These apply to any 64-bit RISC OS work — gerph's riscos64 toolchain, the build service, your own modules. None of them is Phoenix-specific.</p>
+
+<div class="hazard">
+<h3>1. A <code>-1</code> sentinel written as <code>0xFFFFFFFF</code> does not survive<span class="tag">crashes</span></h3>
+
+<p class="sym">Symptom: instant data abort and reset, no error, nothing in the log. Often on a Pi 5 and not elsewhere.</p>
+
+<p><code>_kernel_swi_reg</code> is <code>int32_t</code> — <strong>signed</strong>. A caller passing −1 gives <code>r[n] == -1</code>, and casting that to a pointer <em>sign-extends</em>:</p>
+
+<pre><code>(Wimp_Window *)regs-&gt;r[1]      -&gt;  0xFFFFFFFFFFFFFFFF
+((void*)(0xFFFFFFFFul))        -&gt;  0x00000000FFFFFFFF    NEVER MATCHES</code></pre>
+
+<p>The comparison fails silently, the "no buffer / read size only / not supplied" branch is skipped, and the bogus pointer is used as a real address. In WimpTemplates that was a 16-byte store to <code>0xFFFFFFFFFFFFFFFF</code>.</p>
+
+<p><strong>At 32 bits both sides are <code>0xFFFFFFFF</code> and the code is correct</strong> — which is exactly why these survive for years in well-tested modules.</p>
+
+<p>The fix is the sentinel, not the cast:</p>
+<pre><code>#define READ_SIZE ((void*)-1)   /* 0xFFFFFFFF at 32-bit, all-ones at 64 */</code></pre>
+
+<div class="box good">
+<span class="lbl">How to find them</span>
+<pre><code>grep -rn "0xFFFFFFFF" --include="c/*" --include="h/*" | grep -i "void\s*\*\|(.*\*)"</code></pre>
+<p>and treat every <code>-Wint-to-pointer-cast</code> warning as a candidate — the compiler names the exact line. Ours had been doing so <strong>in every build we had ever run</strong>:</p>
+<pre><code>swis_template.c:204: warning: cast to pointer from integer of different size
+  204 |   Wimp_Window * window = (Wimp_Window *)regs-&gt;r[1];</code></pre>
+</div>
+</div>
+
+<div class="hazard">
+<h3>2. Flags do not reach a C caller — so flag-based results vanish<span class="tag">silent</span></h3>
+
+<p class="sym">Symptom: nothing. Truncated data, a loop that never runs, a limit nobody knew was there.</p>
+
+<p><code>OS_GSTrans</code> reports a full output buffer by setting <strong>Carry</strong>. Correct, documented, and on AArch64 useless: <strong>Carry does not reach a C caller through <code>_swix</code></strong>. riscos64 therefore signals GSTrans overflow by returning <strong>R1 = 0</strong>, and gerph's SystemVars checks exactly that:</p>
+
+<pre><code>err = _swix(OS_GSTrans, _INR(0,2)|_OUTR(1,2), s, output,
+            size_and_flags, &amp;is_valid, wrotep);
+if (err == NULL &amp;&amp; !is_valid) err = err_BufferOverflow;</code></pre>
+
+<p>Phoenix set the Carry and never touched R1, which still held the incoming buffer pointer — non-zero, so <code>is_valid</code> was always true. SystemVars never saw an overflow, its <code>realloc</code> loop never ran, and <strong>every system variable was silently truncated at 16 bytes, on every board, for the life of the implementation.</strong></p>
+
+<p>It surfaced only because <code>Font$Path</code> is 25 characters and was the first long variable the project ever set. <code>Sys$Time</code> is 8, <code>Sys$Date</code> 10, <code>Sys$Year</code> 4. <strong>A 16-byte ceiling is invisible until something crosses it.</strong></p>
+
+<div class="box warn">
+<span class="lbl">The general trap</span>
+<p>When an interface is ported from 32 to 64 bits, <strong>the signal that moved does not fail loudly — the old one is simply never read.</strong> No error, no warning, no "unsupported": the caller reads a register you never wrote and believes whatever was already in it.</p>
+<p>If you implement a SWI that reports anything via flags, <strong>go and read what the 64-bit callers actually check.</strong> Same family as <code>_OUT(_FLAGS)</code>. We now signal both — Carry for 32-bit callers, R1 = 0 for 64-bit ones.</p>
+</div>
+</div>
+
+<div class="hazard">
+<h3>3. Two structs aliased onto each other: LP64 pads one and not the other<span class="tag">silent</span></h3>
+
+<p class="sym">Symptom: a pointer field reads as NULL, or as small non-null garbage — and which one you get depends on the address.</p>
+
+<p>MessageTrans handed its internal view of a message file to callers by <em>aliasing</em> the caller's control block rather than copying it:</p>
+
+<pre><code>*mfdp = (messagefiledata_t *)&amp;cb-&gt;size;</code></pre>
+
+<pre><code>struct MessageTrans_ControlBlock {    struct messagefiledata_s {
+    uint32_t magic;        // 0            int32_t        size;        // 0
+    uint32_t size;         // 4            messagefile_t *messagefile; // 8
+    void *   messagefile;  // 8        };
+};</code></pre>
+
+<p>From <code>&amp;cb-&gt;size</code> the fields sit at +0 and <strong>+4</strong>. <code>messagefiledata_t</code> puts the pointer at <strong>+8</strong>, because LP64 needs 8-byte pointer alignment and the compiler inserts padding after the <code>int32_t</code>. The aliased view reads four bytes past the real pointer. <strong>It broke every MessageTrans lookup on a 64-bit build.</strong> On 32-bit both are <code>{u32, ptr}</code> with no padding, the alias is exact, and this cannot be seen.</p>
+
+<h4>One bug, two faces — and the face depends on where memory is</h4>
+<p>Little-endian, reading eight bytes four past a pointer picks up that pointer's <em>high word</em> as the low word of the result. So the symptom depends entirely on how high the address was:</p>
+
+<table>
+  <thead><tr><th>Where the data lived</th><th>High word</th><th>Reads as</th><th>Symptom</th></tr></thead>
+  <tbody>
+    <tr><td>Phoenix RMA, <code>0x026F7698</code></td><td>0</td><td><code>NULL</code></td><td>walks into the scan and <strong>hangs</strong></td></tr>
+    <tr><td>Linux host, <code>0xb3d9ff695490</code></td><td><code>0xb3d9</code></td><td><code>0xb3d9</code></td><td>non-null garbage, <strong>instant segfault</strong></td></tr>
+  </tbody>
+</table>
+
+<p>Two completely different-looking failures, one cause. Had we only ever seen the hang we would have hunted a loop bug; only the segfault, a corrupt allocation. <strong>A symptom that changes shape with the address is a layout fault until proven otherwise.</strong></p>
+
+<div class="box warn">
+<span class="lbl">The general trap</span>
+<p><strong>Aliasing two struct definitions is a promise about layout that the compiler is under no obligation to keep, and padding is where it breaks first.</strong> A copy is a few instructions and cannot go wrong this way. If you genuinely want an alias, the two types must share one definition or carry a <code>_Static_assert</code> on the offsets.</p>
+</div>
+</div>
+
+<div class="hazard">
+<h3>4. A pointer inside a struct silently resizes an external file format<span class="tag">silent</span></h3>
+
+<p><code>Draw_PathElement</code> went <strong>28 → 32 bytes</strong> because a <code>continuation</code> pointer shared a union with the coordinates. No error, no crash, wrong pixels — and <strong>the module size did not move a single byte</strong>, so nothing in the build output hinted at it.</p>
+
+<p>The same shape appears wherever a struct describes something defined <em>outside</em> your program: a file format, a wire protocol, an OS block. Related: hook fields declared <code>uint32_t</code> are too narrow for an A64 pointer (we hit this in VideoV's vector path).</p>
+
+<div class="box good">
+<span class="lbl">Rule</span>
+<p><strong>Guard every externally-defined layout with a compile-time <code>sizeof</code> assertion,</strong> and ask the binary its layout rather than reading the header and believing yourself. Note that <code>char check[(cond)]</code> is <em>not</em> a compile-time assertion under gcc — it looks protective and does nothing. Use <code>_Static_assert</code>.</p>
+</div>
+</div>
+
+<div class="hazard">
+<h3>5. Alignment: your platform may not be telling you<span class="tag ours">phoenix-specific risk</span></h3>
+
+<p>Credit where due — this one we only checked because of Andrew Youll's excellent <code>DEBUGGING.md</code> in <code>adyoull/desklib32</code>, written from porting !RDPClient to 32-bit Norcroft. He notes RISC OS 5 defaults CPU alignment checking <strong>on</strong>, which is how he found four separate bugs.</p>
+
+<p>What unaligned access actually does on AArch64:</p>
+
+<table>
+  <thead><tr><th>Context</th><th>Unaligned load/store</th></tr></thead>
+  <tbody>
+    <tr><td>Normal memory, <code>SCTLR_EL1.A = 0</code></td><td><strong>Permitted, returns the correct value.</strong> No ARM32-style rotate.</td></tr>
+    <tr><td>Device memory (MMIO)</td><td><strong>Faults</strong> regardless of <code>A</code></td></tr>
+    <tr><td>Pre-MMU (all memory behaves as Device-nGnRnE)</td><td><strong>Faults</strong> regardless of <code>A</code></td></tr>
+    <tr><td>Exclusives (LDXR/STXR), atomics</td><td><strong>Fault</strong> regardless of <code>A</code></td></tr>
+  </tbody>
+</table>
+
+<p>Phoenix has never set <code>SCTLR_EL1.A</code>. So it never alignment-faults on ordinary RAM — but the Device and pre-MMU rows have bitten us five times, and the fixes are in our source as comments. The classic: <code>-O2</code> merged eight byte reads into one <code>ldur</code>, which faulted pre-MMU and hung the boot silently, because pre-MMU the abort handler isn't installed yet. Fix is a <code>volatile</code> byte pointer, forcing individual <code>ldrb</code>.</p>
+
+<div class="box warn">
+<span class="lbl">Why this matters to you, not just to us</span>
+<p>A machine that does not check alignment <strong>cannot tell you your port is clean.</strong> If you test on Phoenix today and it passes, that is <em>not</em> evidence it will pass on RISC OS 5 with alignment exceptions on. We are, for now, the permissive platform. We are treating that as a defect to fix rather than a convenience — most likely as a <code>*Configure</code>-style runtime toggle, so you can switch checking on to test your port and off to run normally.</p>
+<p>Meanwhile: <strong>avoid <code>-Otime</code> / aggressive optimisation on code that parses byte streams</strong>, and do not write parse macros as <code>*(uint16*)p</code>. Both encourage the compiler to fold narrow reads into wide unaligned ones.</p>
+</div>
+</div>
+
+<div class="hazard">
+<h3>6. <code>.rodata</code> pointer tables come back +8<span class="tag open">toolchain, open</span></h3>
+
+<p class="sym">Symptom: strings in a module print as the <em>next</em> string in the table.</p>
+
+<p>A module relocates itself: <code>__RelocCode</code> computes its own delta with <code>ADR</code> and patches the words listed in <code>__RelocData</code>. Measured on FanController, comparing every table entry against what the linker had already written:</p>
+
+<table>
+  <thead><tr><th>Target section</th><th>Entries</th><th>Table minus section</th></tr></thead>
+  <tbody>
+    <tr><td><code>.rodata</code></td><td>36</td><td><strong>+8 — wrong</strong></td></tr>
+    <tr><td><code>.bss</code></td><td>4</td><td>0</td></tr>
+    <tr><td><code>.text</code></td><td>2</td><td>0</td></tr>
+  </tbody>
+</table>
+
+<p><code>.text</code>/<code>.bss</code> being exact is positive proof the load address and delta are right. It is a <strong>constant +8 on the pointer value</strong>, not an indexing error — it merely <em>resembles</em> "the next entry" because the strings happen to be 8-byte aligned: <code>"Manual"</code> at <code>0x8f80</code> is patched to <code>0x8f88</code>, which is <code>"Managed"</code>. A module with no <code>.rodata</code>-targeted relocations is flawless, which is the predictive test and explains why some modules garble strings and others don't.</p>
+
+<p><strong>The defect is proven; the cause is a hypothesis</strong> — most likely <code>riscos64-mkreloc</code> fed from the Makefile's <code>ld -r</code> partial link, which concatenates <code>.rodata.str1.8</code> while the final link <em>merges</em> duplicate strings. Reported upstream.</p>
+
+<p><strong>Workaround:</strong> use 2D char arrays (<code>char msg[16]</code> inside the struct) so there is no pointer to relocate.</p>
+</div>
+
+<div class="hazard">
+<h3>7. Toolchain gaps worth knowing before you plan around them</h3>
+<ul>
+  <li><strong>CMunge 0.84 <code>-64bit</code> has no start code for <code>module-is-runnable:</code></strong> — <code>Serious Error: Start code not implemented for RISC OS 64 bit module</code>. A real gap, not your CMHG. It is what "blocked on CMunge start-code" has always meant. Workable with a hand-written <code>s/veneer64</code>.</li>
+  <li><strong><code>libAsm</code> is 32-bit only</strong>, and <code>muldiv</code>'s reason to exist expires on AArch64. But <strong><code>_callx</code> already exists in the 64-bit CLib</strong> — we recorded it as a blocker needing "a ~40-line AArch64 veneer" that had in fact been written the previous October. <em>Before recording something as a blocker, check whether it is already solved.</em></li>
+  <li><strong>Pulling a library clone updates the source you READ, not the tools you RUN.</strong> <code>riscos64-cc</code> is an image wrapper carrying its own copies of the linker scripts and <code>mkreloc</code>. We updated a clone 0.28→0.31 and none of it reached our builds.</li>
+  <li><strong><code>%p</code> printed only the low 32 bits</strong> in the clib version we were on — in the very module whose 32-bit sentinel crashed a Pi 5. Print addresses at the width they are.</li>
+</ul>
+</div>
+
+<div class="hazard">
+<h3>8. RISC OS build-system traps that look like missing files</h3>
+<ul>
+  <li><strong>The dot is a DIRECTORY SEPARATOR.</strong> <code>riscos-amu -f Makefile.build64</code> → <code>makefile/build64: would not open</code>. Not missing — read as directory <code>makefile</code>, leaf <code>build64</code>. Never put a dot in a makefile name; put the suffix on the stem (<code>MakefileBuild64,fe1</code>). The <code>,fe1</code> is a filetype, not an extension, and is fine.</li>
+  <li><strong>"Missing header" is an export-tree PATH, not an absence.</strong> <code>#include "Global/ModHand.h"</code> maps to <code>Global/h/ModHand</code> on disc — which is how the ROOL export tree is already laid out. Do not rename to the gcc layout; that breaks resolution that already worked. Simplest fix: put the tree <em>inside</em> the component, structure intact, and leave <code>INCLUDES</code> empty.</li>
+  <li><strong>Never write stub Global headers.</strong> <code>NewErrors</code> is 119 KB of <em>allocated</em> error numbers. A stub either fails to compile or invents numbers, giving a module that builds, loads, and returns wrong error and reason codes with no symptom anywhere near the cause.</li>
+  <li><strong>Changing a <code>-D</code> flag rebuilds nothing.</strong> Clean first, and verify the flag actually arrived. Worse, CModule feeds <code>CDEFINES</code> to CMunge as well as to <code>cc</code>, so a compiler code-generation flag put there never reaches the compiler and the rebuild silently tests nothing.</li>
+</ul>
+</div>
+
+<h2 id="part2"><span class="num">Part two</span>Working on Phoenix</h2>
+
+<p><strong>Phoenix</strong> is a bare-metal AArch64 RISC-OS-compatible kernel for the Raspberry Pi 4, CM4, Pi 5 and CM5. It is MIT licensed. It boots to a real <code>*</code> supervisor, runs BASIC, reads FileCore discs off NVMe/USB/SD, does networking and NTP, and loads real 64-bit RISC OS modules from disc.</p>
+
+<h3>One source tree, two builds — and the split is narrower than you'd think</h3>
+
+<p>Phoenix was for a while genuinely <em>one binary</em>: a single <code>kernel8.img</code> booted Pi 4, CM4 and Pi 5 unmodified, because the device-tree HAL detected the board at runtime. <strong>That is no longer strictly true</strong>, and it is worth knowing exactly how far it has drifted, because most of the design still works the old way.</p>
+
+<p>Two things now differ between the images:</p>
+
+<table>
+  <thead><tr><th>What diverges</th><th>Scope</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>-mcpu=cortex-a72</code> vs <code>-mcpu=cortex-a76</code></td>
+      <td><strong>The whole tree.</strong> Codegen only — this is what makes the two images differ in most of their bytes.</td>
+    </tr>
+    <tr>
+      <td><code>-DPI_MODEL=4</code> / <code>=5</code></td>
+      <td><strong>Five sites, in two files.</strong> <code>drivers/gpu/hdmi_audio.c</code> — the BCM2712 HDMI audio driver is compiled in only on Pi 5, with stubs elsewhere. <code>drivers/mmc/mmc.c</code> — the SD host base is a fixed BCM2712 address on Pi 5, versus <code>peripheral_base + EMMC2_OFFSET</code> derived from the DT on Pi 4.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>That is the entire compile-time board split. <strong>Everything else is still resolved at runtime from the device tree</strong> — peripheral base, GIC, memory, CPU count, and which USB path to take (RP1 xHCI on Pi 5, VL805 xHCI on Pi 4, DWC2 on CM4). The rule there is <em>probe, do not match</em>: <code>periph_base</code> tests a timer register rather than recognising a board string, which is why an Argon One CM5 — hardware nobody here had seen — worked first time.</p>
+
+<p>So the accurate description today is <strong>one source tree, two board-specific images</strong>, with a narrow and deliberate set of compile-time exceptions. If you are adding board-specific code, the DT-HAL is still the default answer; a <code>#if PI_MODEL</code> should be a considered decision, not a reflex.</p>
+
+<div class="box">
+<span class="lbl">Deliberate constraint</span>
+<p><strong>Phoenix stays MIT and does not absorb GPL or unclear-licence code.</strong> Where we need third-party functionality it ships as its own module with its own licence, and we re-derive from device trees, datasheets and published specifications rather than copying. If you contribute, please keep to that — and note that a licence finding has a date on it. Re-check before relying on one; we have been caught out in both directions.</p>
+</div>
+
+<h3>Building</h3>
+<pre><code>make BOARD=pi4      # Raspberry Pi 4 / CM4 (cortex-a72)
+make BOARD=pi5      # Raspberry Pi 5 / CM5 (cortex-a76)</code></pre>
+
+<div class="box warn">
+<span class="lbl">The first thing that will trip you</span>
+<p><strong>Flash <code>kernel8-pi4.img</code> or <code>kernel8-pi5.img</code> — never <code>kernel8.img</code>, never <code>phoenix64.img</code>.</strong> Both of those are whichever board was built last and tell you nothing. <code>phoenix64.img</code> is the Makefile's <code>TARGET</code> and is written by <em>every</em> build whatever <code>BOARD=</code> says; its name suggests "the 64-bit build", which is the trap.</p>
+<p>After a pi5 then pi4 build, all three of <code>kernel8.img</code>, <code>phoenix64.img</code> and <code>kernel8-pi4.img</code> are byte-identical <strong>Pi 4</strong> kernels. Always produce both board images, and verify they differ (<code>md5sum</code>).</p>
+</div>
+
+<h3>Every build stamps itself, and you should quote it</h3>
+<p>The boot banner prints a build stamp so <em>every log self-identifies</em>. This exists because three separate times in one evening a test ran against the wrong binary — a CM5 booting a day-old kernel, a stale module still on the disc, an SD-card overwrite prompt never answered. Every conclusion from those runs was worthless, and one nearly produced a per-board "fix" for a bug that did not exist.</p>
+<p><strong>Check the stamp before believing any result.</strong> And note that <strong>module size is not a tell</strong> — the Draw layout fix changed behaviour completely and moved the size not one byte. Disassemble, or diff the md5.</p>
+
+<h3>Where the knowledge lives</h3>
+<table>
+  <thead><tr><th>File</th><th>What it is</th></tr></thead>
+  <tbody>
+    <tr><td><code>docs/GOTCHAS.md</code></td><td>~3,000 lines of traps, each with the symptom that led to it. <strong>Read the matching section before debugging, §1 always.</strong> It is part of the plan, not a postscript.</td></tr>
+    <tr><td><code>docs/HANDOFF.md</code></td><td>Where to pick up, and what is blocked on whom</td></tr>
+    <tr><td><code>docs/journal.txt</code></td><td>The narrative record — why, not just what</td></tr>
+    <tr><td><code>docs/BUILDING_A_MODULE.md</code></td><td>The 64-bit module recipe, hard-won</td></tr>
+    <tr><td><code>tools/hosttest/</code></td><td>Host harnesses — see Part 3</td></tr>
+  </tbody>
+</table>
+
+<div class="box good">
+<span class="lbl">House rules</span>
+<ul style="margin-bottom:0">
+  <li><strong>Touch sources, never object files.</strong> If the hardware disagrees with the source, suspect the binary you flashed first.</li>
+  <li><strong>Add a GOTCHAS entry the same session you find the trap</strong> — and delete entries that stop being true. A rule the next commit quietly exempts itself from is worse than no rule.</li>
+  <li><strong>Never put Phoenix on the only bootable device</strong> you own.</li>
+  <li><strong>The CM5 has no serial capture.</strong> Screen output, or it did not happen.</li>
+</ul>
+</div>
+
+<h2 id="part3"><span class="num">Part three</span>Method — how these were actually found</h2>
+
+<p>This part is opinionated and it is the half we would most want a new contributor to read. Every rule here is written because we broke it and paid.</p>
+
+<h3>Find the host runner before anything that needs hardware</h3>
+<p>Three test suites in this project needed <strong>only a C compiler</strong> and had never been run. One of them scored 1101/1420 and identified a real defect the first time it executed. Another found a bug hiding in its own <em>warnings</em>.</p>
+<p><strong>Do not grep for <code>test</code> — grep for a host compiler.</strong> Look for <code>testcode/</code>, <code>tests/</code>, <code>Test/</code>, <code>verification/</code>, <code>.robuild.yaml</code>, any <code>Makefile</code> mentioning <code>gcc</code> or <code>cc</code> rather than the cross-toolchain.</p>
+<p>Related and separate: <strong>run the tests that ship with any module you did not write.</strong> MessageTrans came with 22 tests covering every SWI we had been guessing at. We had to be told twice.</p>
+
+<h3>Run it; don't read it</h3>
+<p>Reading source produces hypotheses. Running it produces answers. Five wrong theories about the MessageTrans fault died in about two minutes once the code was in a host harness. Much RISC OS module code is pure C and will compile and run on a Linux host with a small shim.</p>
+
+<div class="box warn">
+<span class="lbl">Two conditions on harnesses, both learned the hard way</span>
+<p><strong>1. EXTRACT the code, never retype it.</strong> We once "proved" a fix in a harness the kernel never received, and shipped a change that broke every newline in the system. Our harness scripts now <code>sed</code> the real functions straight out of the real source file, so the thing under test and the thing that ships cannot diverge.</p>
+<p><strong>2. Check that the test discriminates.</strong> Reinstate the bug and confirm the test <em>fails</em>. A test that passes against both the broken and the fixed code is measuring nothing — and it will read as reassurance forever.</p>
+</div>
+
+<h3>Your own instrument is the first suspect</h3>
+<p>Four separate striking findings in this project came from diagnostics we had just added, and all four were wrong. A confident verdict from a new instrument is its <em>least</em> trustworthy output.</p>
+<p>Concretely: our <code>con_printf</code> handles only <code>%s %d %u %x %c</code>, and <strong>an unknown conversion consumes no argument</strong>, shifting every column after it. That faked a bug for two days. And a serial capture that drops ~14% of lines under load faked a board-dependent bug for another two.</p>
+<p><strong>Absence from a log is not evidence of absence.</strong> Count inside the program and print the total.</p>
+
+<h3>Use an existing trusted path as the oracle, not a fixture</h3>
+<p>The best test we wrote this month proves a new filing-system dispatch layer by reading the same file two ways and enumerating the same directory two ways — new path against the long-trusted one. It cannot pass while being wrong, and it needs no golden values.</p>
+<p>The payoff was visible immediately: enumeration returned <strong>20 names on the Pi 4 and 22 on the Pi 5</strong> — different discs, each agreeing with itself. <strong>A hardcoded expected value would have been wrong on one of the two boards</strong> and we would have "fixed" a working implementation to match it.</p>
+
+<h3>A workaround that makes the test pass deletes the evidence</h3>
+<p>Our mouse Y axis was inverted on every board for months. It survived because the "known-good decoder" proof only ever checked X. Making a symptom go away is not the same as understanding it, and it destroys the thing you would have needed to understand it later.</p>
+
+<h3>Two smaller ones that keep recurring</h3>
+<ul>
+  <li><strong>Two bugs can each disprove the other.</strong> When fix after fix changes nothing, that is data — consider that you have two faults stacked, each acting as a false negative for the other. We had exactly this in CM5 WiFi.</li>
+  <li><strong>A probable answer stated as a known one is still a wrong attribution.</strong> Say which parts are measured and which are inferred. Most of the entries above distinguish the two, and where we could not, we said so.</li>
+</ul>
+
+<h2 id="open"><span class="num">Open question</span>32-bit Wimp blocks at LP64 — we would like your view</h2>
+
+<p>This is the one we have not solved, and it blocks more than it looks.</p>
+
+<p>A Wimp window block is a fixed run of 32-bit words defined by the OS. A C struct describing it doubles the moment it contains a pointer — so <strong>every Wimp library's window, icon and template structs are wrong at LP64</strong>, in the same way but not necessarily by the same amount.</p>
+
+<p>Andrew Youll hit the small version of this from the 32-bit Norcroft side: a group of <code>unsigned int : 1</code> bitfields pushed DeskLib's <code>wimp_colourflags</code> from 8 bytes to 12 and shifted every field after it, so template loading requested a bogus allocation and the application died on launch. We hit the large version from the 64-bit GCC side. <strong>Two people, opposite directions, same wall.</strong></p>
+
+<p>It currently blocks a WindowScroll port for us, makes riscos64-oslib's structs unusable at LP64, and stands between the community and a 64-bit DeskLib.</p>
+
+<div class="box">
+<span class="lbl">Why we are asking rather than deciding</span>
+<p>Whoever answers this first sets a convention. If several projects each solve it privately, we end up with <strong>incompatible conventions in different libraries</strong>, which is materially worse than the current situation of none. We would much rather it were settled once, in the open, by the people who maintain these libraries — and then DeskLib, OSLib, RISC_OSLib and the rest become largely mechanical conversions.</p>
+<p>If you have a view, or you have already solved it in your own code, we would genuinely like to hear it.</p>
+</div>
+
+<footer class="end">
+<p><strong>Corrections welcome, and expected.</strong> Two entries in this bulletin contradict what we ourselves wrote earlier — the <code>.rodata</code> relocation cause and the alignment framing were both stated confidently and wrongly the first time. If something here is wrong, or is right but out of date, please say so; a bulletin nobody corrects is a bulletin nobody is reading.</p>
+<p style="color:var(--ink-faint);font-size:13.5px;margin-bottom:0">Phoenix RISC OS · MIT licensed · Bulletin No. 1, 13 September 2026<br>
+With thanks to Andrew Youll, whose <code>desklib32</code> debugging notes prompted the alignment investigation in Part 1 §5, and to Charles Ferguson, whose riscos64 toolchain and modules are what made any of this reachable.</p>
+</footer>
+
+</div>
+</body>
+</html>

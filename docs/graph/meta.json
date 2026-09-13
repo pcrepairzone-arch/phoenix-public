@@ -1,6 +1,8 @@
 {
-  "lastAnalyzedAt": "2026-07-20T06:35:04.384119+00:00",
-  "gitCommitHash": "510d99dbeb07e2374f7c2fee953e14daca89acb4",
-  "version": "1.0.0",
-  "analyzedFiles": 38
+  "gitCommitHash": "1fcb3812a2c778f093528b7e0c2b7df2e6471313",
+  "analyzedAt": "2026-09-13T13:52:25.311418Z",
+  "nodeCount": 1454,
+  "edgeCount": 2230,
+  "layerCount": 12,
+  "tourStepCount": 18
 }

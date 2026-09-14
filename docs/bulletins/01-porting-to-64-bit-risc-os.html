@@ -122,7 +122,7 @@
   <div class="kicker">Phoenix RISC OS · Developer Bulletin No. 1</div>
   <h1>Porting to 64-bit RISC OS: what actually bites</h1>
   <p class="standfirst">Every hazard below cost us real days. They are collected here so they cost you an afternoon's reading instead. Part one applies to anyone building 64-bit RISC OS code with the riscos64 toolchain; part two is Phoenix-specific; part three is how to work so these things surface early.</p>
-  <p class="meta">Written 13 September 2026 · Phoenix RISC OS project · MIT<br>
+  <p class="meta">Written 13 September 2026 · <b>updated 14 September</b> · Phoenix RISC OS project · MIT<br>
   Everything here is measured on real hardware (Pi 4, CM4, Pi 5, CM5) unless explicitly marked as a hypothesis.</p>
 </header>
 
@@ -263,7 +263,29 @@ if (err == NULL &amp;&amp; !is_valid) err = err_BufferOverflow;</code></pre>
 
 <div class="box warn">
 <span class="lbl">Why this matters to you, not just to us</span>
-<p>A machine that does not check alignment <strong>cannot tell you your port is clean.</strong> If you test on Phoenix today and it passes, that is <em>not</em> evidence it will pass on RISC OS 5 with alignment exceptions on. We are, for now, the permissive platform. We are treating that as a defect to fix rather than a convenience — most likely as a <code>*Configure</code>-style runtime toggle, so you can switch checking on to test your port and off to run normally.</p>
+<p>A machine that does not check alignment <strong>cannot tell you your port is clean.</strong> If you test on Phoenix and it passes with checking off, that is <em>not</em> evidence it will pass on RISC OS 5 with alignment exceptions on.</p>
+
+<p><strong>Update, 14 September — we turned it on, and it found three things.</strong> Phoenix now has <code>*AlignCheck</code>: <code>On</code>, <code>Off</code>, <code>Test</code> (one deliberate fault, to prove the check fires and can be reported) and <code>Survey</code> (log and skip rather than halt, so one boot yields the whole list). Default off, for a reason given below.</p>
+
+<p>Two of the three were ours, and both had been invisible since the project started:</p>
+
+<ul>
+<li><strong>Our allocator misaligned half of every allocation.</strong> <code>need = ALIGN_UP(hdr) + ALIGN_UP(size) + sizeof(uint32_t)</code> — two aligned terms and a bare <code>+4</code> for a tail canary, so <code>need</code> came out 4 mod 16 and every split shifted the next block by 4. Every struct, workspace and buffer in the kernel, and <em>nothing ever failed</em>, because with <code>A</code> clear the misaligned reads returned correct values.</li>
+<li><strong>gcc was merging narrow stores into wide unaligned ones</strong> — two adjacent 32-bit zero-stores became one 64-bit store at <code>+4</code>, on a properly aligned struct. Nothing had told it not to. <code>-mstrict-align</code> fixes the class.</li>
+</ul>
+
+<p>With both fixed, Phoenix's kernel is alignment-clean: zero faults across its filing-system, font and module tests with the check confirmed armed, on two boards.</p>
+
+<div class="box warn">
+<span class="lbl">The third one is yours too, if you build with riscos64</span>
+<p>The first application we tested took six faults inside <code>__RelocCode</code> — the self-relocation stub that <strong>every <code>riscos64</code> binary carries</strong>. Its four 64-bit parameter words sat at 4 mod 8, because <code>riscos64-mkreloc</code> emits <code>.balign 4</code> and then places <code>.dword</code>s after an arbitrary number of 4-byte instructions.</p>
+<p><strong>Whether it bites you is parity.</strong> The stub's length varies with what your image needs — no relocations and no GOT emits just <code>RET</code>; relocations add a block; a GOT adds another. The data lands misaligned only when the instruction count comes out odd. So with checking on you would see <em>some</em> binaries run and others die, with no pattern visible from outside. When we generated the stub in isolation to test the fix, it came out <strong>correctly aligned by luck</strong> — we had to remove one instruction to reproduce the failure.</p>
+<p>The fix is two <code>.balign 8</code> lines. We have rebuilt a real application with it and confirmed on hardware that the faults are gone, and it has gone upstream.</p>
+</div>
+
+<p><strong>And why the default stays off.</strong> Once that stub was fixed, the same application faulted deeper in — at <code>mod8=7</code>, seven bytes past an 8-boundary, in a workspace it clears with 64-bit stores. No allocator produces that: it is an interpreter placing values at their natural byte offsets. That is a design choice, not a defect, and nobody can patch it from outside.</p>
+
+<p>So a runtime toggle is not a compromise, it is the correct answer: <strong>there is real software that legitimately needs checking off.</strong> Turn it on to test your own code; leave it off to run everyone else's.</p>
 <p>Meanwhile: <strong>avoid <code>-Otime</code> / aggressive optimisation on code that parses byte streams</strong>, and do not write parse macros as <code>*(uint16*)p</code>. Both encourage the compiler to fold narrow reads into wide unaligned ones.</p>
 </div>
 </div>
@@ -433,7 +455,7 @@ make BOARD=pi5      # Raspberry Pi 5 / CM5 (cortex-a76)</code></pre>
 </div>
 
 <footer class="end">
-<p><strong>Corrections welcome, and expected.</strong> Two entries in this bulletin contradict what we ourselves wrote earlier — the <code>.rodata</code> relocation cause and the alignment framing were both stated confidently and wrongly the first time. If something here is wrong, or is right but out of date, please say so; a bulletin nobody corrects is a bulletin nobody is reading.</p>
+<p><strong>Corrections welcome, and expected.</strong> Several entries here contradict what this project itself wrote earlier — the <code>.rodata</code> relocation cause and the alignment framing were both stated confidently and wrongly the first time, and "one binary, all boards" was corrected within a day of publication. Part 1 &sect;5 has been rewritten since: what was an open defect we were "leaning towards" fixing is now three located bugs, two fixed in our own code and one fixed upstream. If something here is wrong, or is right but out of date, please say so; a bulletin nobody corrects is a bulletin nobody is reading.</p>
 <p style="color:var(--ink-faint);font-size:13.5px;margin-bottom:0">Phoenix RISC OS · MIT licensed · Bulletin No. 1, 13 September 2026<br>
 With thanks to Andrew Youll, whose <code>desklib32</code> debugging notes prompted the alignment investigation in Part 1 §5, and to Charles Ferguson, whose riscos64 toolchain and modules are what made any of this reachable.</p>
 </footer>

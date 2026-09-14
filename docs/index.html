@@ -51,7 +51,7 @@ footer{margin-top:56px;padding-top:22px;border-top:3px solid var(--ink);font-siz
 <a class="tile" href="bulletins/01-porting-to-64-bit-risc-os.html">
   <span class="n">Bulletin No. 1 · 13 September 2026</span>
   <h3>Porting to 64-bit RISC OS: what actually bites</h3>
-  <p>Sentinels that sign-extend, flags that never reach a C caller, struct padding that moves every field, alignment checking that isn't on, relocations that come back eight bytes high. Plus the debugging habits that surfaced them. For anyone using the riscos64 toolchain, not only for Phoenix.</p>
+  <p>Sentinels that sign-extend, flags that never reach a C caller, struct padding that moves every field, alignment checking nobody had ever switched on, relocations that come back eight bytes high. Plus the debugging habits that surfaced them. For anyone using the riscos64 toolchain, not only for Phoenix. <strong>Updated 14 September</strong> — switching the alignment check on found three real bugs, one of them in the relocation stub every riscos64 binary carries.</p>
 </a>
 
 <a class="tile" href="architecture/">
